@@ -9,3 +9,11 @@ val Pink80 = Color(0xFFEFB8C8)
 val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
+
+// Мои цвета
+// Регистрация
+val DarkBackground = Color(0xFF10151A)
+val SurfaceColor = Color(0xFF1A2028)
+val AccentLime = Color(0xFF97D452)
+val TextSecondary = Color(0xFFA0A6AE)
+val BorderField = Color(0xFF31373E)
