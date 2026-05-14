@@ -1,8 +1,10 @@
 package ru.example.caloriecounterapp.ui.screens.auth
 
-import androidx.compose.foundation.BorderStroke
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -18,10 +22,18 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -45,15 +58,20 @@ import ru.example.caloriecounterapp.R
 import ru.example.caloriecounterapp.ui.components.CustomTextField
 import ru.example.caloriecounterapp.ui.theme.AccentLime
 import ru.example.caloriecounterapp.ui.theme.DarkBackground
+import ru.example.caloriecounterapp.ui.theme.SurfaceColor
 import ru.example.caloriecounterapp.ui.theme.TextSecondary
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrationScreen(
     viewModel: AuthViewModel = viewModel(),
     onNavigateToLogin: () -> Unit,
     onSuccess: () -> Unit
 ) {
-    // Состояния ввода
+    // --- Состояния ввода ---
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -62,9 +80,16 @@ fun RegistrationScreen(
     var gender by remember { mutableStateOf("Мужской") }
     var isTermsAccepted by remember { mutableStateOf(false) }
 
+    // --- Состояния UI (Календарь и Меню) ---
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+
+    var isGenderMenuExpanded by remember { mutableStateOf(false) }
+    val genderOptions = listOf("Мужской", "Женский")
+
     val authState by viewModel.authState.collectAsState()
 
-    // Успех регистрации
+    // Слушаем успех регистрации
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) onSuccess()
     }
@@ -87,7 +112,7 @@ fun RegistrationScreen(
                 .align(Alignment.Start)
         )
 
-        // Поля ввода
+        // Имя
         CustomTextField(
             value = name,
             onValueChange = { name = it },
@@ -96,12 +121,14 @@ fun RegistrationScreen(
                 Icon(
                     painter = painterResource(R.drawable.ic_user),
                     contentDescription = null,
-                    tint = AccentLime
+                    tint = AccentLime,
+                    modifier = Modifier.size(19.dp)
                 )
-            },
+            }
         )
         Spacer(Modifier.height(16.dp))
 
+        // Почта
         CustomTextField(
             value = email,
             onValueChange = { email = it },
@@ -110,13 +137,15 @@ fun RegistrationScreen(
                 Icon(
                     painter = painterResource(R.drawable.ic_email),
                     contentDescription = null,
-                    tint = AccentLime
+                    tint = AccentLime,
+                    modifier = Modifier.size(width = 15.dp, height = 12.dp)
                 )
             },
             keyboardType = KeyboardType.Email
         )
         Spacer(Modifier.height(16.dp))
 
+        // Пароль
         CustomTextField(
             value = password,
             onValueChange = { password = it },
@@ -125,13 +154,15 @@ fun RegistrationScreen(
                 Icon(
                     painter = painterResource(R.drawable.ic_lock),
                     contentDescription = null,
-                    tint = AccentLime
+                    tint = AccentLime,
+                    modifier = Modifier.size(19.dp)
                 )
             },
             isPassword = true
         )
         Spacer(Modifier.height(16.dp))
 
+        // Повтор пароля
         CustomTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
@@ -140,45 +171,59 @@ fun RegistrationScreen(
                 Icon(
                     painter = painterResource(R.drawable.ic_lock),
                     contentDescription = null,
-                    tint = AccentLime
+                    tint = AccentLime,
+                    modifier = Modifier.size(19.dp)
                 )
             },
             isPassword = true
         )
         Spacer(Modifier.height(16.dp))
 
-        // Дата рождения (пока просто поле)
-        CustomTextField(
-            value = birthDate,
-            onValueChange = { birthDate = it },
-            labelText = "Дата рождения",
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.ic_calendar),
-                    contentDescription = null,
-                    tint = AccentLime
-                )
-            }
-        )
-        Spacer(Modifier.height(16.dp))
+        // --- ДАТА РОЖДЕНИЯ (Кликабельное поле) ---
+        ExposedDropdownMenuBox(
+            expanded = isGenderMenuExpanded,
+            onExpandedChange = { isGenderMenuExpanded = !isGenderMenuExpanded },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            CustomTextField(
+                value = gender,
+                onValueChange = {},
+                labelText = "Пол",
+                readOnly = true,
+                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_people),
+                        contentDescription = null,
+                        tint = AccentLime,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGenderMenuExpanded)
+                }
+            )
 
-        // Пол (пока просто поле)
-        CustomTextField(
-            value = gender,
-            onValueChange = { gender = it },
-            labelText = "Пол",
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.ic_people),
-                    contentDescription = null,
-                    tint = AccentLime
-                )
-            },
-        )
+            ExposedDropdownMenu(
+                expanded = isGenderMenuExpanded,
+                onDismissRequest = { isGenderMenuExpanded = false },
+                modifier = Modifier.background(SurfaceColor) // Твой цвет подложки
+            ) {
+                genderOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option, color = Color.White) },
+                        onClick = {
+                            gender = option
+                            isGenderMenuExpanded = false
+                        }
+                    )
+                }
+            }
+        }
 
         Spacer(Modifier.height(24.dp))
 
-        // Чекбокс
+        // Чекбокс Условий
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Checkbox(
                 checked = isTermsAccepted,
@@ -190,20 +235,11 @@ fun RegistrationScreen(
                 )
             )
             val annotatedString = buildAnnotatedString {
-                withStyle(style = SpanStyle(color = TextSecondary)) {
-                    append("Я принимаю условия ")
-                }
-                withStyle(style = SpanStyle(color = AccentLime)) {
-                    append("Пользовательского соглашения")
-                }
-                withStyle(style = SpanStyle(color = TextSecondary)) {
-                    append(" и ")
-                }
-                withStyle(style = SpanStyle(color = AccentLime)) {
-                    append("Политики конфиденциальности")
-                }
+                withStyle(style = SpanStyle(color = TextSecondary)) { append("Я принимаю условия ") }
+                withStyle(style = SpanStyle(color = AccentLime)) { append("Соглашения") }
+                withStyle(style = SpanStyle(color = TextSecondary)) { append(" и ") }
+                withStyle(style = SpanStyle(color = AccentLime)) { append("Политики") }
             }
-
             Text(
                 text = annotatedString,
                 fontSize = 12.sp,
@@ -237,11 +273,7 @@ fun RegistrationScreen(
                     contentColor = Color.Black
                 )
             ) {
-                Text(
-                    text = "Зарегистрироваться",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
+                Text(text = "Зарегистрироваться", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
 
@@ -255,37 +287,94 @@ fun RegistrationScreen(
             HorizontalDivider(modifier = Modifier.weight(1f), color = Color.DarkGray)
         }
 
-        // Соцсети (заглушки)
-        SocialButton("Продолжить с Google")
+        // Соцсети
+        SocialButton(
+            text = "Продолжить с Google",
+            iconRes = R.drawable.ic_google,
+            keepOriginalColor = true,
+            onClick = { /* TODO: Google Auth */ }
+        )
         Spacer(Modifier.height(12.dp))
-        SocialButton("Продолжить с Apple")
+        SocialButton(
+            text = "Продолжить с Apple",
+            iconRes = R.drawable.ic_apple,
+            keepOriginalColor = false, // Перекрашиваем Apple в белый
+            onClick = { /* TODO: Apple Auth */ }
+        )
 
         Spacer(Modifier.height(32.dp))
 
-        // Переход на вход (пока просто текст)
+        // Переход на логин
         Row {
             Text("Уже есть аккаунт? ", color = TextSecondary)
             Text(
                 "Войти",
                 color = AccentLime,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable { onNavigateToLogin() })
+                modifier = Modifier.clickable { onNavigateToLogin() }
+            )
         }
         Spacer(Modifier.height(24.dp))
+    }
+
+    // --- Календарь (Диалог) ---
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+                        birthDate = sdf.format(Date(millis))
+                    }
+                    showDatePicker = false
+                }) { Text("ОК", color = AccentLime) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text(
+                        "Отмена",
+                        color = TextSecondary
+                    )
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
     }
 }
 
 @Composable
-fun SocialButton(text: String) {
-    OutlinedButton(
-        onClick = {},
-        modifier = Modifier
+fun SocialButton(
+    text: String,
+    @DrawableRes iconRes: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    keepOriginalColor: Boolean = true
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier
             .fillMaxWidth()
             .height(56.dp),
         shape = RoundedCornerShape(28.dp),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-        border = BorderStroke(1.dp, Color.DarkGray)
+        colors = ButtonDefaults.buttonColors(
+            containerColor = SurfaceColor,
+            contentColor = Color.White
+        )
     ) {
-        Text(text)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(text = text, fontSize = 16.sp)
+            Spacer(modifier = Modifier.width(8.dp))
+            Image(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                colorFilter = if (keepOriginalColor) null else ColorFilter.tint(Color.White)
+            )
+        }
     }
 }
