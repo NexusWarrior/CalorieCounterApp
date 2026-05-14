@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -71,7 +72,7 @@ fun RegistrationScreen(
     onNavigateToLogin: () -> Unit,
     onSuccess: () -> Unit
 ) {
-    // --- Состояния ввода ---
+    // Состояния ввода
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -80,7 +81,7 @@ fun RegistrationScreen(
     var gender by remember { mutableStateOf("Мужской") }
     var isTermsAccepted by remember { mutableStateOf(false) }
 
-    // --- Состояния UI (Календарь и Меню) ---
+    // Состояния UI (Календарь и Меню)
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
 
@@ -131,55 +132,93 @@ fun RegistrationScreen(
         // Почта
         CustomTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = {
+                email = it
+                viewModel.resetError()
+            },
             labelText = "Почта",
             icon = {
                 Icon(
-                    painter = painterResource(R.drawable.ic_email),
-                    contentDescription = null,
+                    painterResource(R.drawable.ic_email),
+                    null,
                     tint = AccentLime,
-                    modifier = Modifier.size(width = 15.dp, height = 12.dp)
+                    modifier = Modifier.size(15.dp, 12.dp)
                 )
             },
-            keyboardType = KeyboardType.Email
+            keyboardType = KeyboardType.Email,
+            isError = authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.EMAIL,
+            errorMessage = if (authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.EMAIL) (authState as AuthState.Error).message else null
         )
         Spacer(Modifier.height(16.dp))
 
         // Пароль
         CustomTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                password = it
+                viewModel.resetError()
+            },
             labelText = "Пароль",
             icon = {
                 Icon(
-                    painter = painterResource(R.drawable.ic_lock),
-                    contentDescription = null,
+                    painterResource(R.drawable.ic_lock),
+                    null,
                     tint = AccentLime,
                     modifier = Modifier.size(19.dp)
                 )
             },
-            isPassword = true
+            isPassword = true,
+            isError = authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.PASSWORD,
+            errorMessage = if (authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.PASSWORD) (authState as AuthState.Error).message else null
         )
         Spacer(Modifier.height(16.dp))
 
-        // Повтор пароля
+        // Повторный пароль
         CustomTextField(
             value = confirmPassword,
-            onValueChange = { confirmPassword = it },
+            onValueChange = {
+                confirmPassword = it
+                viewModel.resetError()
+            },
             labelText = "Повторите пароль",
             icon = {
                 Icon(
-                    painter = painterResource(R.drawable.ic_lock),
-                    contentDescription = null,
+                    painterResource(R.drawable.ic_lock),
+                    null,
                     tint = AccentLime,
                     modifier = Modifier.size(19.dp)
                 )
             },
-            isPassword = true
+            isPassword = true,
+            isError = authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.CONFIRM_PASSWORD,
+            errorMessage = if (authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.CONFIRM_PASSWORD) (authState as AuthState.Error).message else null
         )
         Spacer(Modifier.height(16.dp))
 
-        // --- ДАТА РОЖДЕНИЯ (Кликабельное поле) ---
+        // Дата рождения
+        Box(modifier = Modifier.fillMaxWidth()) {
+            CustomTextField(
+                value = birthDate,
+                onValueChange = {},
+                labelText = "Дата рождения",
+                readOnly = true,
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_calendar),
+                        contentDescription = null,
+                        tint = AccentLime,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable { showDatePicker = true })
+        }
+        Spacer(Modifier.height(16.dp))
+
+        // Пол
         ExposedDropdownMenuBox(
             expanded = isGenderMenuExpanded,
             onExpandedChange = { isGenderMenuExpanded = !isGenderMenuExpanded },
@@ -207,7 +246,7 @@ fun RegistrationScreen(
             ExposedDropdownMenu(
                 expanded = isGenderMenuExpanded,
                 onDismissRequest = { isGenderMenuExpanded = false },
-                modifier = Modifier.background(SurfaceColor) // Твой цвет подложки
+                modifier = Modifier.background(SurfaceColor)
             ) {
                 genderOptions.forEach { option ->
                     DropdownMenuItem(
@@ -220,39 +259,55 @@ fun RegistrationScreen(
                 }
             }
         }
-
         Spacer(Modifier.height(24.dp))
 
-        // Чекбокс Условий
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Checkbox(
-                checked = isTermsAccepted,
-                onCheckedChange = { isTermsAccepted = it },
-                colors = CheckboxDefaults.colors(
-                    checkedColor = AccentLime,
-                    uncheckedColor = TextSecondary,
-                    checkmarkColor = Color.Black
+        // Checkbox
+        val isTermsError =
+            authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.TERMS
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = isTermsAccepted,
+                    onCheckedChange = {
+                        isTermsAccepted = it
+                        viewModel.resetError()
+                    },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = AccentLime,
+                        uncheckedColor = if (isTermsError) Color.Red else TextSecondary,
+                        checkmarkColor = Color.Black
+                    )
                 )
-            )
-            val annotatedString = buildAnnotatedString {
-                withStyle(style = SpanStyle(color = TextSecondary)) { append("Я принимаю условия ") }
-                withStyle(style = SpanStyle(color = AccentLime)) { append("Соглашения") }
-                withStyle(style = SpanStyle(color = TextSecondary)) { append(" и ") }
-                withStyle(style = SpanStyle(color = AccentLime)) { append("Политики") }
+                // Пользовательское соглашение
+                val annotatedString = buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = TextSecondary)) { append("Я принимаю условия ") }
+                    withStyle(style = SpanStyle(color = AccentLime)) { append("Пользовательского соглашения") }
+                    withStyle(style = SpanStyle(color = TextSecondary)) { append(" и ") }
+                    withStyle(style = SpanStyle(color = AccentLime)) { append("Политики конфиденциальности") }
+                }
+                Text(
+                    text = annotatedString,
+                    fontSize = 14.sp,
+                )
             }
-            Text(
-                text = annotatedString,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(start = 8.dp)
-            )
+
+            // Вывод текста ошибки именно для чекбокса
+            if (isTermsError) {
+                Text(
+                    text = (authState as AuthState.Error).message,
+                    color = Color.Red,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
         }
 
         Spacer(Modifier.height(32.dp))
 
-        // Ошибки
-        if (authState is AuthState.Error) {
+        // Глобальные ошибки
+        if (authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.NONE) {
             Text(
-                (authState as AuthState.Error).message,
+                text = (authState as AuthState.Error).message,
                 color = Color.Red,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -273,11 +328,15 @@ fun RegistrationScreen(
                     contentColor = Color.Black
                 )
             ) {
-                Text(text = "Зарегистрироваться", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(
+                    text = "Зарегистрироваться",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
             }
         }
 
-        // Разделитель
+        // Регистрация через Google, Apple
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(vertical = 24.dp)
@@ -287,7 +346,6 @@ fun RegistrationScreen(
             HorizontalDivider(modifier = Modifier.weight(1f), color = Color.DarkGray)
         }
 
-        // Соцсети
         SocialButton(
             text = "Продолжить с Google",
             iconRes = R.drawable.ic_google,
@@ -298,13 +356,12 @@ fun RegistrationScreen(
         SocialButton(
             text = "Продолжить с Apple",
             iconRes = R.drawable.ic_apple,
-            keepOriginalColor = false, // Перекрашиваем Apple в белый
+            keepOriginalColor = false,
             onClick = { /* TODO: Apple Auth */ }
         )
 
         Spacer(Modifier.height(32.dp))
 
-        // Переход на логин
         Row {
             Text("Уже есть аккаунт? ", color = TextSecondary)
             Text(
@@ -317,7 +374,7 @@ fun RegistrationScreen(
         Spacer(Modifier.height(24.dp))
     }
 
-    // --- Календарь (Диалог) ---
+    // Встроенный календарь
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -332,10 +389,7 @@ fun RegistrationScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text(
-                        "Отмена",
-                        color = TextSecondary
-                    )
+                    Text("Отмена", color = TextSecondary)
                 }
             }
         ) {
@@ -344,6 +398,7 @@ fun RegistrationScreen(
     }
 }
 
+// Кастомная кнопка
 @Composable
 fun SocialButton(
     text: String,
