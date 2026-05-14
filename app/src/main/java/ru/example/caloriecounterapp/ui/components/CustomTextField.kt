@@ -36,7 +36,8 @@ fun CustomTextField(
     imeAction: ImeAction = ImeAction.Next,
     readOnly: Boolean = false,
     isError: Boolean = false,
-    errorMessage: String? = null
+    errorMessage: String? = null,
+    visualTransformation: VisualTransformation? = null
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         OutlinedTextField(
@@ -48,7 +49,7 @@ fun CustomTextField(
             trailingIcon = trailingIcon,
             readOnly = readOnly,
             isError = isError, // Включаем режим ошибки
-            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+            // Убрали дублирующийся параметр отсюда!
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
             shape = RoundedCornerShape(10.dp),
             colors = OutlinedTextFieldDefaults.colors(
@@ -71,9 +72,13 @@ fun CustomTextField(
                 errorLabelColor = Color.Red,
                 errorLeadingIconColor = Color.Red,
                 errorTrailingIconColor = Color.Red,
-                errorCursorColor = Color.Red
+                errorCursorColor = Color.Red,
+                errorTextColor = Color.White
             ),
-            singleLine = true
+            singleLine = true,
+            // Оставляем только эту, правильную логику трансформации
+            visualTransformation = visualTransformation
+                ?: if (isPassword) PasswordVisualTransformation() else VisualTransformation.None
         )
 
         // Отрисовка текста ошибки под полем

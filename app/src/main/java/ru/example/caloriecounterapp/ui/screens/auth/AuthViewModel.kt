@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 // Перечисление полей, где может быть ошибка
 enum class ErrorField {
-    EMAIL, PASSWORD, CONFIRM_PASSWORD, TERMS, NONE
+    NAME, EMAIL, PASSWORD, CONFIRM_PASSWORD, BIRTH_DATE, TERMS, NONE
 }
 
 sealed class AuthState {
@@ -30,13 +30,29 @@ class AuthViewModel : ViewModel() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
-    fun register(email: String, pass: String, confirmPass: String, terms: Boolean) {
+    fun register(
+        name: String,
+        email: String,
+        pass: String,
+        confirmPass: String,
+        birthDate: String,
+        terms: Boolean
+    ) {
+        val cleanName = name.trim()
         val cleanEmail = email.replace("\\s+".toRegex(), "")
         val cleanPass = pass.trim()
         val cleanConfirmPass = confirmPass.trim()
+        val cleanBirthDate = birthDate.trim()
 
-        // === КЛИЕНТСКАЯ ВАЛИДАЦИЯ (До отправки на сервер) ===
+        // === КЛИЕНТСКАЯ ВАЛИДАЦИЯ ===
 
+        // Проверка имени
+        if (cleanName.isBlank()) {
+            _authState.value = AuthState.Error("Введите ваше имя", ErrorField.NAME)
+            return
+        }
+
+        // Проверка почты
         if (cleanEmail.isBlank()) {
             _authState.value = AuthState.Error("Введите почту", ErrorField.EMAIL)
             return
@@ -45,6 +61,8 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Error("Неверный формат почты", ErrorField.EMAIL)
             return
         }
+
+        // Проверка пароля
         if (cleanPass.length < 6) {
             _authState.value =
                 AuthState.Error("Пароль должен содержать минимум 6 символов", ErrorField.PASSWORD)
@@ -54,13 +72,21 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Error("Пароли не совпадают", ErrorField.CONFIRM_PASSWORD)
             return
         }
+
+        // Проверка даты рождения
+        if (cleanBirthDate.length < 8) {
+            _authState.value = AuthState.Error("Введите полную дату рождения", ErrorField.BIRTH_DATE)
+            return
+        }
+
+        // Проверка соглашения
         if (!terms) {
             _authState.value =
                 AuthState.Error("Примите пользовательское соглашение", ErrorField.TERMS)
             return
         }
 
-        // Если все локальные проверки пройдены, стучимся в Firebase
+        // Если все ок — стучимся в Firebase
         _authState.value = AuthState.Loading
 
         auth.createUserWithEmailAndPassword(cleanEmail, cleanPass)

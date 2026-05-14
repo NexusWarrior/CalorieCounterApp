@@ -5,7 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,8 +22,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -33,8 +30,6 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -47,10 +42,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,9 +60,36 @@ import ru.example.caloriecounterapp.ui.theme.AccentLime
 import ru.example.caloriecounterapp.ui.theme.DarkBackground
 import ru.example.caloriecounterapp.ui.theme.SurfaceColor
 import ru.example.caloriecounterapp.ui.theme.TextSecondary
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+
+class DateVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val trimmed = if (text.text.length >= 8) text.text.substring(0..7) else text.text
+        var out = ""
+        for (i in trimmed.indices) {
+            out += trimmed[i]
+            if (i == 1 || i == 3) out += "." // Ставим точки после дня и месяца
+        }
+
+        // Логика правильного перемещения курсора
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                if (offset <= 1) return offset
+                if (offset <= 3) return offset + 1
+                if (offset <= 8) return offset + 2
+                return 10
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                if (offset <= 2) return offset
+                if (offset <= 5) return offset - 1
+                if (offset <= 10) return offset - 2
+                return 8
+            }
+        }
+
+        return TransformedText(AnnotatedString(out), offsetMapping)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,13 +104,10 @@ fun RegistrationScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var birthDate by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf("Мужской") }
+    var gender by remember { mutableStateOf("") }
     var isTermsAccepted by remember { mutableStateOf(false) }
 
-    // Состояния UI (Календарь и Меню)
-    var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
-
+    // Состояния UI (Меню пола)
     var isGenderMenuExpanded by remember { mutableStateOf(false) }
     val genderOptions = listOf("Мужской", "Женский")
 
@@ -116,7 +139,10 @@ fun RegistrationScreen(
         // Имя
         CustomTextField(
             value = name,
-            onValueChange = { name = it },
+            onValueChange = {
+                name = it
+                viewModel.resetError() // Сброс ошибки при вводе
+            },
             labelText = "Имя",
             icon = {
                 Icon(
@@ -125,7 +151,9 @@ fun RegistrationScreen(
                     tint = AccentLime,
                     modifier = Modifier.size(19.dp)
                 )
-            }
+            },
+            isError = authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.NAME,
+            errorMessage = if (authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.NAME) (authState as AuthState.Error).message else null
         )
         Spacer(Modifier.height(16.dp))
 
@@ -173,7 +201,7 @@ fun RegistrationScreen(
         )
         Spacer(Modifier.height(16.dp))
 
-        // Повторный пароль
+        // Повторный Пароль
         CustomTextField(
             value = confirmPassword,
             onValueChange = {
@@ -196,26 +224,30 @@ fun RegistrationScreen(
         Spacer(Modifier.height(16.dp))
 
         // Дата рождения
-        Box(modifier = Modifier.fillMaxWidth()) {
-            CustomTextField(
-                value = birthDate,
-                onValueChange = {},
-                labelText = "Дата рождения",
-                readOnly = true,
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_calendar),
-                        contentDescription = null,
-                        tint = AccentLime,
-                        modifier = Modifier.size(19.dp)
-                    )
+        CustomTextField(
+            value = birthDate,
+            onValueChange = { input ->
+                // Оставляем только цифры и ограничиваем длину 8 символами
+                val digitsOnly = input.filter { it.isDigit() }
+                if (digitsOnly.length <= 8) {
+                    birthDate = digitsOnly
+                    viewModel.resetError()
                 }
-            )
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clickable { showDatePicker = true })
-        }
+            },
+            labelText = "Дата рождения (ДД.ММ.ГГГГ)",
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_calendar),
+                    contentDescription = null,
+                    tint = AccentLime,
+                    modifier = Modifier.size(19.dp)
+                )
+            },
+            keyboardType = KeyboardType.Number,
+            visualTransformation = DateVisualTransformation(),
+            isError = authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.BIRTH_DATE,
+            errorMessage = if (authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.BIRTH_DATE) (authState as AuthState.Error).message else null
+        )
         Spacer(Modifier.height(16.dp))
 
         // Пол
@@ -261,7 +293,7 @@ fun RegistrationScreen(
         }
         Spacer(Modifier.height(24.dp))
 
-        // Checkbox
+        // CheckBox
         val isTermsError =
             authState is AuthState.Error && (authState as AuthState.Error).field == ErrorField.TERMS
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -278,7 +310,6 @@ fun RegistrationScreen(
                         checkmarkColor = Color.Black
                     )
                 )
-                // Пользовательское соглашение
                 val annotatedString = buildAnnotatedString {
                     withStyle(style = SpanStyle(color = TextSecondary)) { append("Я принимаю условия ") }
                     withStyle(style = SpanStyle(color = AccentLime)) { append("Пользовательского соглашения") }
@@ -291,7 +322,6 @@ fun RegistrationScreen(
                 )
             }
 
-            // Вывод текста ошибки именно для чекбокса
             if (isTermsError) {
                 Text(
                     text = (authState as AuthState.Error).message,
@@ -318,7 +348,16 @@ fun RegistrationScreen(
             CircularProgressIndicator(color = AccentLime)
         } else {
             Button(
-                onClick = { viewModel.register(email, password, confirmPassword, isTermsAccepted) },
+                onClick = {
+                    viewModel.register(
+                        name = name,
+                        email = email,
+                        pass = password,
+                        confirmPass = confirmPassword,
+                        birthDate = birthDate,
+                        terms = isTermsAccepted
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -336,7 +375,7 @@ fun RegistrationScreen(
             }
         }
 
-        // Регистрация через Google, Apple
+        // Регистрация через соц. сети (Google, Apple)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(vertical = 24.dp)
@@ -362,6 +401,7 @@ fun RegistrationScreen(
 
         Spacer(Modifier.height(32.dp))
 
+        // Переход на вход
         Row {
             Text("Уже есть аккаунт? ", color = TextSecondary)
             Text(
@@ -373,32 +413,9 @@ fun RegistrationScreen(
         }
         Spacer(Modifier.height(24.dp))
     }
-
-    // Встроенный календарь
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-                        birthDate = sdf.format(Date(millis))
-                    }
-                    showDatePicker = false
-                }) { Text("ОК", color = AccentLime) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Отмена", color = TextSecondary)
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
 }
 
-// Кастомная кнопка
+// Кнопка для регистрации через соц сети
 @Composable
 fun SocialButton(
     text: String,
