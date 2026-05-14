@@ -49,7 +49,6 @@ fun CustomTextField(
             trailingIcon = trailingIcon,
             readOnly = readOnly,
             isError = isError, // Включаем режим ошибки
-            // Убрали дублирующийся параметр отсюда!
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
             shape = RoundedCornerShape(10.dp),
             colors = OutlinedTextFieldDefaults.colors(
@@ -76,7 +75,6 @@ fun CustomTextField(
                 errorTextColor = Color.White
             ),
             singleLine = true,
-            // Оставляем только эту, правильную логику трансформации
             visualTransformation = visualTransformation
                 ?: if (isPassword) PasswordVisualTransformation() else VisualTransformation.None
         )

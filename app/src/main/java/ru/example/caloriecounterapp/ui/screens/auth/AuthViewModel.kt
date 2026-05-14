@@ -1,5 +1,6 @@
 package ru.example.caloriecounterapp.ui.screens.auth
 
+import android.app.Activity
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import com.google.firebase.FirebaseNetworkException
@@ -7,11 +8,12 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.OAuthProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-// Перечисление полей, где может быть ошибка
 enum class ErrorField {
     NAME, EMAIL, PASSWORD, CONFIRM_PASSWORD, BIRTH_DATE, TERMS, NONE
 }
@@ -20,8 +22,6 @@ sealed class AuthState {
     object Idle : AuthState()
     object Loading : AuthState()
     object Success : AuthState()
-
-    // Теперь ошибка несет в себе не только текст, но и указание на конкретное поле
     data class Error(val message: String, val field: ErrorField = ErrorField.NONE) : AuthState()
 }
 
@@ -44,15 +44,10 @@ class AuthViewModel : ViewModel() {
         val cleanConfirmPass = confirmPass.trim()
         val cleanBirthDate = birthDate.trim()
 
-        // === КЛИЕНТСКАЯ ВАЛИДАЦИЯ ===
-
-        // Проверка имени
         if (cleanName.isBlank()) {
             _authState.value = AuthState.Error("Введите ваше имя", ErrorField.NAME)
             return
         }
-
-        // Проверка почты
         if (cleanEmail.isBlank()) {
             _authState.value = AuthState.Error("Введите почту", ErrorField.EMAIL)
             return
@@ -61,32 +56,25 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Error("Неверный формат почты", ErrorField.EMAIL)
             return
         }
-
-        // Проверка пароля
         if (cleanPass.length < 6) {
-            _authState.value =
-                AuthState.Error("Пароль должен содержать минимум 6 символов", ErrorField.PASSWORD)
+            _authState.value = AuthState.Error("Пароль минимум 6 символов", ErrorField.PASSWORD)
             return
         }
         if (cleanPass != cleanConfirmPass) {
             _authState.value = AuthState.Error("Пароли не совпадают", ErrorField.CONFIRM_PASSWORD)
             return
         }
-
-        // Проверка даты рождения
         if (cleanBirthDate.length < 8) {
-            _authState.value = AuthState.Error("Введите полную дату рождения", ErrorField.BIRTH_DATE)
+            _authState.value =
+                AuthState.Error("Введите полную дату рождения", ErrorField.BIRTH_DATE)
             return
         }
-
-        // Проверка соглашения
         if (!terms) {
             _authState.value =
                 AuthState.Error("Примите пользовательское соглашение", ErrorField.TERMS)
             return
         }
 
-        // Если все ок — стучимся в Firebase
         _authState.value = AuthState.Loading
 
         auth.createUserWithEmailAndPassword(cleanEmail, cleanPass)
@@ -100,27 +88,65 @@ class AuthViewModel : ViewModel() {
             }
     }
 
-    // Возвращает пару: (Текст ошибки, Поле для подсветки)
+    // Авторизация через Google
+    fun signInWithGoogle(idToken: String) {
+        _authState.value = AuthState.Loading
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    _authState.value = AuthState.Success
+                } else {
+                    val (message, _) = getRussianErrorDetails(task.exception)
+                    _authState.value = AuthState.Error(message, ErrorField.NONE)
+                }
+            }
+    }
+
+    // Авторизация через Apple (заглушка)
+    fun signInWithApple(activity: Activity) {
+        _authState.value = AuthState.Loading
+        val provider = OAuthProvider.newBuilder("apple.com")
+        provider.scopes = listOf("email", "name")
+
+        auth.startActivityForSignInWithProvider(activity, provider.build())
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    _authState.value = AuthState.Success
+                } else {
+                    val (message, _) = getRussianErrorDetails(task.exception)
+                    _authState.value = AuthState.Error(message, ErrorField.NONE)
+                }
+            }
+    }
+
     private fun getRussianErrorDetails(exception: Exception?): Pair<String, ErrorField> {
         return when (exception) {
-            is FirebaseAuthWeakPasswordException ->
-                Pair("Пароль слишком простой (минимум 6 символов).", ErrorField.PASSWORD)
+            is FirebaseAuthWeakPasswordException -> Pair(
+                "Пароль слишком простой.",
+                ErrorField.PASSWORD
+            )
 
-            is FirebaseAuthInvalidCredentialsException ->
-                Pair("Неверный формат почты.", ErrorField.EMAIL)
+            is FirebaseAuthInvalidCredentialsException -> Pair(
+                "Неверный формат почты.",
+                ErrorField.EMAIL
+            )
 
-            is FirebaseAuthUserCollisionException ->
-                Pair("Пользователь с такой почтой уже существует.", ErrorField.EMAIL)
+            is FirebaseAuthUserCollisionException -> Pair(
+                "Пользователь с такой почтой уже существует.",
+                ErrorField.EMAIL
+            )
 
-            is FirebaseNetworkException ->
-                Pair("Ошибка сети. Проверьте подключение.", ErrorField.NONE)
+            is FirebaseNetworkException -> Pair(
+                "Ошибка сети. Проверьте подключение.",
+                ErrorField.NONE
+            )
 
-            else ->
-                Pair("Произошла неизвестная ошибка. Попробуйте позже.", ErrorField.NONE)
+            else -> Pair("Произошла неизвестная ошибка. Попробуйте позже.", ErrorField.NONE)
         }
     }
 
-    // Функция, чтобы сбрасывать ошибку, когда пользователь начинает вводить текст
     fun resetError() {
         if (_authState.value is AuthState.Error) {
             _authState.value = AuthState.Idle

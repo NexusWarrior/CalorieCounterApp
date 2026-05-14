@@ -12,7 +12,20 @@
           "package_name": "ru.example.caloriecounterapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "799158039900-q5v58annqvb4e92rur6t5t0pkkf7j954.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ru.example.caloriecounterapp",
+            "certificate_hash": "53d29e97631ac931d627c0a87cb7cbfd6472ed06"
+          }
+        },
+        {
+          "client_id": "799158039900-utf6b7qn5ij1d1hm73bvp5ukbi7ho858.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAfptAohAhtJ_N4tlwTLr95M3WEQxLdpcE"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "799158039900-utf6b7qn5ij1d1hm73bvp5ukbi7ho858.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

@@ -1,5 +1,7 @@
 package ru.example.caloriecounterapp.ui.screens.auth
 
+import android.annotation.SuppressLint
+import android.app.Activity
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -36,11 +38,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -53,7 +57,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 import ru.example.caloriecounterapp.R
 import ru.example.caloriecounterapp.ui.components.CustomTextField
 import ru.example.caloriecounterapp.ui.theme.AccentLime
@@ -91,6 +102,7 @@ class DateVisualTransformation : VisualTransformation {
     }
 }
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrationScreen(
@@ -98,13 +110,18 @@ fun RegistrationScreen(
     onNavigateToLogin: () -> Unit,
     onSuccess: () -> Unit
 ) {
+    // Контекст и скоуп для вызова API авторизации
+    val context = LocalContext.current
+    val activity = context as? Activity
+    val coroutineScope = rememberCoroutineScope()
+
     // Состояния ввода
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var birthDate by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("Мужской") } // Задаем значение по умолчанию
     var isTermsAccepted by remember { mutableStateOf(false) }
 
     // Состояния UI (Меню пола)
@@ -141,7 +158,7 @@ fun RegistrationScreen(
             value = name,
             onValueChange = {
                 name = it
-                viewModel.resetError() // Сброс ошибки при вводе
+                viewModel.resetError()
             },
             labelText = "Имя",
             icon = {
@@ -227,14 +244,13 @@ fun RegistrationScreen(
         CustomTextField(
             value = birthDate,
             onValueChange = { input ->
-                // Оставляем только цифры и ограничиваем длину 8 символами
                 val digitsOnly = input.filter { it.isDigit() }
                 if (digitsOnly.length <= 8) {
                     birthDate = digitsOnly
                     viewModel.resetError()
                 }
             },
-            labelText = "Дата рождения (ДД.ММ.ГГГГ)",
+            labelText = "Дата рождения",
             icon = {
                 Icon(
                     painter = painterResource(R.drawable.ic_calendar),
@@ -375,7 +391,7 @@ fun RegistrationScreen(
             }
         }
 
-        // Регистрация через соц. сети (Google, Apple)
+        // Регистрация через соц. сети
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(vertical = 24.dp)
@@ -389,19 +405,60 @@ fun RegistrationScreen(
             text = "Продолжить с Google",
             iconRes = R.drawable.ic_google,
             keepOriginalColor = true,
-            onClick = { /* TODO: Google Auth */ }
+            onClick = {
+                // Запуск Credential Manager
+                coroutineScope.launch {
+                    try {
+                        val credentialManager = CredentialManager.create(context)
+                        val googleIdOption = GetGoogleIdOption.Builder()
+                            .setFilterByAuthorizedAccounts(false)
+                            .setServerClientId(context.getString(R.string.default_web_client_id))
+                            .setAutoSelectEnabled(true)
+                            .build()
+
+                        val request = GetCredentialRequest.Builder()
+                            .addCredentialOption(googleIdOption)
+                            .build()
+
+                        val result = credentialManager.getCredential(
+                            request = request,
+                            context = context
+                        )
+
+                        val credential = result.credential
+                        if (credential is CustomCredential &&
+                            credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                        ) {
+
+                            val googleIdTokenCredential =
+                                GoogleIdTokenCredential.createFrom(credential.data)
+                            val idToken = googleIdTokenCredential.idToken
+                            viewModel.signInWithGoogle(idToken)
+                        }
+                    } catch (e: GetCredentialException) {
+                        viewModel.resetError() // Пользователь закрыл шторку
+                    } catch (e: Exception) {
+                        viewModel.resetError() // Другая ошибка
+                    }
+                }
+            }
         )
         Spacer(Modifier.height(12.dp))
         SocialButton(
             text = "Продолжить с Apple",
             iconRes = R.drawable.ic_apple,
             keepOriginalColor = false,
-            onClick = { /* TODO: Apple Auth */ }
+            onClick = {
+                activity?.let {
+                    viewModel.signInWithApple(it)
+                }
+            }
         )
 
         Spacer(Modifier.height(32.dp))
 
         // Переход на вход
+        // TODO: Реализовать текстовую кнопку "Вход"
         Row {
             Text("Уже есть аккаунт? ", color = TextSecondary)
             Text(

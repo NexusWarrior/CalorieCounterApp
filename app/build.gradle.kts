@@ -42,6 +42,11 @@ android {
 }
 
 dependencies {
+    // Credential Manager для авторизации
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
