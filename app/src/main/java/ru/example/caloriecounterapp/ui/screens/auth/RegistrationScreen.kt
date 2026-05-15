@@ -66,7 +66,7 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 import ru.example.caloriecounterapp.R
-import ru.example.caloriecounterapp.ui.components.CustomTextField
+import ru.example.caloriecounterapp.ui.components.auth.CustomTextField
 import ru.example.caloriecounterapp.ui.theme.AccentLime
 import ru.example.caloriecounterapp.ui.theme.DarkBackground
 import ru.example.caloriecounterapp.ui.theme.SurfaceColor
