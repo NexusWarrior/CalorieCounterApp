@@ -100,56 +100,74 @@ fun MealItem(
     label: String,
     cals: String,
     iconRes: Int,
-    iconColor: Color
+    iconColor: Color,
+    products: List<String> = emptyList()
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceColor)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
-            // Иконка еды
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = label,
-                tint = iconColor,
-                modifier = modifier.size(38.dp)
-            )
+            // Верхняя часть: Иконка, Название, Калории, Стрелка
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = label,
+                    tint = iconColor,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .offset(y = (-3).dp) // Оптическое выравнивание
+                )
 
-            Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(16.dp))
 
-            // Прием пищи
-            Text(
-                text = label,
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
+                Text(
+                    text = label,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
 
-            Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
 
-            // Калории
-            Text(
-                text = cals,
-                color = Color.White,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+                Text(
+                    text = cals,
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
 
-            Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(12.dp))
 
-            // Иконка стрелочки
-            Icon(
-                painter = painterResource(R.drawable.ic_right_arrow),
-                contentDescription = null,
-                tint = TextSecondary,
-                modifier = Modifier.size(16.dp)
-            )
+                Icon(
+                    painter = painterResource(R.drawable.ic_right_arrow), // Проверь правильность названия (у тебя было rigth)
+                    contentDescription = null,
+                    tint = TextSecondary,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+
+            // Нижняя часть: Вывод списка продуктов (если они есть)
+            if (products.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                products.forEach { product ->
+                    Text(
+                        text = "• $product",
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        // Отступ 54.dp выравнивает точки ровно под текстом названия (38dp иконка + 16dp спэйсер)
+                        modifier = Modifier.padding(start = 54.dp, top = 2.dp)
+                    )
+                }
+            }
         }
     }
 }
