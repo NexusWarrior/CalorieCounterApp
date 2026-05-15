@@ -1,4 +1,4 @@
-package ru.example.caloriecounterapp.ui.components
+package ru.example.caloriecounterapp.ui.components.auth
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth

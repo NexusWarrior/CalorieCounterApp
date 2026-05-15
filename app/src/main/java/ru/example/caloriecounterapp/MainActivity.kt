@@ -1,23 +1,30 @@
 package ru.example.caloriecounterapp
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import ru.example.caloriecounterapp.ui.screens.auth.RegistrationScreen
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import ru.example.caloriecounterapp.ui.navigation.AppNavigation
+import ru.example.caloriecounterapp.ui.theme.CalorieCounterAppTheme
+import ru.example.caloriecounterapp.ui.theme.DarkBackground
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+
         setContent {
-            RegistrationScreen(
-                onNavigateToLogin = {
-                    Log.d("NAV", "Переход на экран логина")
-                },
-                onSuccess = {
-                    Log.d("NAV", "Регистрация прошла успешно! Переход в приложение")
+            CalorieCounterAppTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = DarkBackground
+                ) {
+                    AppNavigation()
                 }
-            )
+            }
         }
     }
 }
