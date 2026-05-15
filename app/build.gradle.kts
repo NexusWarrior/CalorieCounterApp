@@ -48,6 +48,19 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.googleid)
 
+    // CameraX для работы с камерой
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+
+    // ML Kit для быстрого распознавания штрихкодов без интернета
+    implementation(libs.barcode.scanning)
+
+    // Retrofit для запросов к базе продуктов
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
