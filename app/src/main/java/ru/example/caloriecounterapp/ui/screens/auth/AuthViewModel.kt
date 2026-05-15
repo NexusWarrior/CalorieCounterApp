@@ -36,7 +36,7 @@ class AuthViewModel : ViewModel() {
         pass: String,
         confirmPass: String,
         birthDate: String,
-        terms: Boolean
+        terms: Boolean,
     ) {
         val cleanName = name.trim()
         val cleanEmail = email.replace("\\s+".toRegex(), "")
@@ -124,23 +124,23 @@ class AuthViewModel : ViewModel() {
     private fun getRussianErrorDetails(exception: Exception?): Pair<String, ErrorField> {
         return when (exception) {
             is FirebaseAuthWeakPasswordException -> Pair(
-                "Пароль слишком простой.",
-                ErrorField.PASSWORD
+                "Пароль слишком простой (минимум 6 символов).",
+                ErrorField.PASSWORD,
             )
 
             is FirebaseAuthInvalidCredentialsException -> Pair(
                 "Неверный формат почты.",
-                ErrorField.EMAIL
+                ErrorField.EMAIL,
             )
 
             is FirebaseAuthUserCollisionException -> Pair(
                 "Пользователь с такой почтой уже существует.",
-                ErrorField.EMAIL
+                ErrorField.EMAIL,
             )
 
             is FirebaseNetworkException -> Pair(
                 "Ошибка сети. Проверьте подключение.",
-                ErrorField.NONE
+                ErrorField.NONE,
             )
 
             else -> Pair("Произошла неизвестная ошибка. Попробуйте позже.", ErrorField.NONE)
