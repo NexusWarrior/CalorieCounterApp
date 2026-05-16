@@ -158,7 +158,7 @@ fun CalorieRing(modifier: Modifier = Modifier) {
             Text(
                 "1800",
                 color = Color.White,
-                fontSize = 28.sp, // Уменьшил немного для адаптивности
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold
             )
             Text("/ 2200 ккал", color = TextSecondary, fontSize = 12.sp)

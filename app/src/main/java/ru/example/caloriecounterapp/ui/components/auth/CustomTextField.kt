@@ -29,7 +29,7 @@ fun CustomTextField(
     onValueChange: (String) -> Unit,
     labelText: String,
     modifier: Modifier = Modifier,
-    icon: @Composable () -> Unit,
+    icon: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
     isPassword: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text,
