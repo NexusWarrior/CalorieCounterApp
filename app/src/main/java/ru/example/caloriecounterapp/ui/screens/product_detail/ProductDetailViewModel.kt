@@ -30,9 +30,6 @@ class ProductDetailViewModel : ViewModel() {
                 } else {
                     _state.value = ProductState.Error("Продукт не найден в базе")
                 }
-            } catch (e: Exception) {
-                Log.e("API_ERROR", "Сбой при получении продукта", e)
-                _state.value = ProductState.Error("Ошибка: ${e.localizedMessage}")
             } catch (e: retrofit2.HttpException) {
                 if (e.code() == 502 || e.code() == 503) {
                     _state.value =
@@ -41,7 +38,8 @@ class ProductDetailViewModel : ViewModel() {
                     _state.value = ProductState.Error("Ошибка сервера: ${e.code()}")
                 }
             } catch (e: Exception) {
-                _state.value = ProductState.Error("Ошибка сети. Проверьте подключение к интернету.")
+                Log.e("API_ERROR", "Сбой при получении продукта", e)
+                _state.value = ProductState.Error("Ошибка: ${e.localizedMessage ?: "Неизвестная ошибка"}")
             }
         }
     }

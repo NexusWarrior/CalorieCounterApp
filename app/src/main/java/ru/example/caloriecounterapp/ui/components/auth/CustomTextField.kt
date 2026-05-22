@@ -32,13 +32,16 @@ fun CustomTextField(
     icon: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
     isPassword: Boolean = false,
-    keyboardType: KeyboardType = KeyboardType.Text,
+    keyboardType: KeyboardType? = null,
     imeAction: ImeAction = ImeAction.Next,
     readOnly: Boolean = false,
     isError: Boolean = false,
     errorMessage: String? = null,
     visualTransformation: VisualTransformation? = null
 ) {
+    val resolvedKeyboardType =
+        keyboardType ?: if (isPassword) KeyboardType.Password else KeyboardType.Text
+
     Column(modifier = modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = value,
@@ -49,7 +52,10 @@ fun CustomTextField(
             trailingIcon = trailingIcon,
             readOnly = readOnly,
             isError = isError, // Включаем режим ошибки
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = resolvedKeyboardType,
+                imeAction = imeAction
+            ),
             shape = RoundedCornerShape(10.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 // Стандартные цвета
@@ -79,7 +85,6 @@ fun CustomTextField(
                 ?: if (isPassword) PasswordVisualTransformation() else VisualTransformation.None
         )
 
-        // Отрисовка текста ошибки под полем
         if (isError && errorMessage != null) {
             Text(
                 text = errorMessage,

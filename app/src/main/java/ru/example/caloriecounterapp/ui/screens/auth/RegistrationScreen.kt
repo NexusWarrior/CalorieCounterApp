@@ -489,9 +489,9 @@ private fun TermsCheckbox(
             }
             Text(text = annotatedString, fontSize = 14.sp)
         }
-        if (isTermsError) {
+        if (authState is AuthState.Error && authState.field == ErrorField.TERMS) {
             Text(
-                text = (authState as AuthState.Error).message,
+                text = authState.message,
                 color = Color.Red,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(start = 16.dp)
@@ -580,7 +580,7 @@ private fun SocialSection(
                                 GoogleIdTokenCredential.createFrom(credential.data)
                             viewModel.signInWithGoogle(googleIdTokenCredential.idToken)
                         }
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         viewModel.resetError()
                     }
                 }

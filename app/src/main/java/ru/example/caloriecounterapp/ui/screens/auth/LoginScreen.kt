@@ -10,13 +10,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,10 +27,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import ru.example.caloriecounterapp.R
 import ru.example.caloriecounterapp.ui.components.auth.CustomTextField
 import ru.example.caloriecounterapp.ui.theme.AccentLime
 import ru.example.caloriecounterapp.ui.theme.DarkBackground
@@ -35,22 +41,30 @@ import ru.example.caloriecounterapp.ui.theme.TextSecondary
 
 @Composable
 fun LoginScreen(
-    // viewModel: AuthViewModel,
+    viewModel: AuthViewModel = viewModel(),
     onNavigateToRegistration: () -> Unit,
     onSuccess: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
+    val authState = viewModel.authState.collectAsState().value
+
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Success) {
+            onSuccess()
+            viewModel.resetState()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBackground)
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Spacer(modifier = Modifier.weight(1f))
 
         Text(
             text = "С возвращением!",
@@ -58,51 +72,101 @@ fun LoginScreen(
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
+
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Поле ввода Email
         CustomTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = {
+                email = it
+                viewModel.resetError()
+            },
             labelText = "Email",
             keyboardType = KeyboardType.Email,
-            icon = { /* Передай иконку email, если есть */ }
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_email),
+                    contentDescription = null,
+                    tint = AccentLime,
+                    modifier = Modifier.size(15.dp, 12.dp)
+                )
+            },
+            isError = authState is AuthState.Error &&
+                    authState.field == ErrorField.EMAIL,
+            errorMessage = if (
+                authState is AuthState.Error &&
+                authState.field == ErrorField.EMAIL
+            ) authState.message else null
         )
+
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Поле ввода Пароля
         CustomTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                password = it
+                viewModel.resetError()
+            },
             labelText = "Пароль",
-            keyboardType = KeyboardType.Password,
-            icon = { /* Передай иконку пароля, если есть */ }
+            isPassword = true,
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_lock),
+                    contentDescription = null,
+                    tint = AccentLime,
+                    modifier = Modifier.size(19.dp)
+                )
+            },
+            isError = authState is AuthState.Error &&
+                    authState.field == ErrorField.PASSWORD,
+            errorMessage = if (
+                authState is AuthState.Error &&
+                authState.field == ErrorField.PASSWORD
+            ) authState.message else null
         )
+
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Кнопка входа
+        if (authState is AuthState.Error &&
+            authState.field == ErrorField.NONE
+        ) {
+            Text(
+                text = authState.message,
+                color = Color.Red
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         Button(
-            onClick = {
-                // TODO: Вызов метода логина через Firebase, например:
-                // viewModel.login(email, password)
-                onSuccess() // Временно переходим сразу в дневник для проверки
-            },
+            onClick = { viewModel.login(email, password) },
+            enabled = authState !is AuthState.Loading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AccentLime)
+            shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AccentLime
+            )
         ) {
-            Text("ВОЙТИ", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            if (authState is AuthState.Loading) {
+                CircularProgressIndicator(
+                    color = Color.Black,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                Text(
+                    text = "ВОЙТИ",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Кнопка перехода обратно к регистрации
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -111,14 +175,15 @@ fun LoginScreen(
                 color = TextSecondary,
                 fontSize = 14.sp
             )
+
             Text(
                 text = "Зарегистрироваться",
                 color = AccentLime,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .clickable { onNavigateToRegistration() }
-                    .padding(4.dp)
+                modifier = Modifier.clickable {
+                    onNavigateToRegistration()
+                }
             )
         }
     }

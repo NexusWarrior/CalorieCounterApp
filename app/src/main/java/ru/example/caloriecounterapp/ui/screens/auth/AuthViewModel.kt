@@ -1,18 +1,15 @@
 package ru.example.caloriecounterapp.ui.screens.auth
 
 import android.app.Activity
-import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
-import com.google.firebase.auth.FirebaseAuthUserCollisionException
-import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.OAuthProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 enum class ErrorField {
     NAME, EMAIL, PASSWORD, CONFIRM_PASSWORD, BIRTH_DATE, TERMS, NONE
@@ -26,130 +23,168 @@ sealed class AuthState {
 }
 
 class AuthViewModel : ViewModel() {
-    private val auth = FirebaseAuth.getInstance()
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
-    val authState: StateFlow<AuthState> = _authState.asStateFlow()
+    val authState: StateFlow<AuthState> = _authState
+
+    fun checkCurrentUser(): Boolean {
+        return auth.currentUser != null
+    }
 
     fun register(
         name: String,
         email: String,
-        pass: String,
-        confirmPass: String,
+        password: String,
+        confirmPassword: String,
         birthDate: String,
-        terms: Boolean,
+        isTermsAccepted: Boolean
     ) {
-        val cleanName = name.trim()
-        val cleanEmail = email.replace("\\s+".toRegex(), "")
-        val cleanPass = pass.trim()
-        val cleanConfirmPass = confirmPass.trim()
-        val cleanBirthDate = birthDate.trim()
-
-        if (cleanName.isBlank()) {
+        val trimmedEmail = email.trim()
+        if (name.isBlank()) {
             _authState.value = AuthState.Error("Введите ваше имя", ErrorField.NAME)
             return
         }
-        if (cleanEmail.isBlank()) {
+        if (trimmedEmail.isBlank()) {
             _authState.value = AuthState.Error("Введите почту", ErrorField.EMAIL)
             return
         }
-        if (!Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
-            _authState.value = AuthState.Error("Неверный формат почты", ErrorField.EMAIL)
+        if (password.length < 6) {
+            _authState.value =
+                AuthState.Error("Пароль должен быть не менее 6 символов", ErrorField.PASSWORD)
             return
         }
-        if (cleanPass.length < 6) {
-            _authState.value = AuthState.Error("Пароль минимум 6 символов", ErrorField.PASSWORD)
-            return
-        }
-        if (cleanPass != cleanConfirmPass) {
+        if (password != confirmPassword) {
             _authState.value = AuthState.Error("Пароли не совпадают", ErrorField.CONFIRM_PASSWORD)
             return
         }
-        if (cleanBirthDate.length < 8) {
+        if (birthDate.length < 8) {
             _authState.value =
-                AuthState.Error("Введите полную дату рождения", ErrorField.BIRTH_DATE)
+                AuthState.Error("Введите корректную дату рождения", ErrorField.BIRTH_DATE)
             return
         }
-        if (!terms) {
-            _authState.value =
-                AuthState.Error("Примите пользовательское соглашение", ErrorField.TERMS)
+        if (!isTermsAccepted) {
+            _authState.value = AuthState.Error("Необходимо принять условия", ErrorField.TERMS)
             return
         }
 
         _authState.value = AuthState.Loading
-
-        auth.createUserWithEmailAndPassword(cleanEmail, cleanPass)
+        auth.createUserWithEmailAndPassword(trimmedEmail, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     _authState.value = AuthState.Success
                 } else {
-                    val (message, errorField) = getRussianErrorDetails(task.exception)
-                    _authState.value = AuthState.Error(message, errorField)
+                    _authState.value = AuthState.Error(
+                        task.exception?.localizedMessage ?: "Ошибка регистрации"
+                    )
                 }
             }
     }
 
-    // Авторизация через Google
+    fun login(email: String, password: String) {
+        val trimmedEmail = email.trim()
+
+        if (trimmedEmail.isBlank()) {
+            _authState.value = AuthState.Error(
+                "Введите почту",
+                ErrorField.EMAIL
+            )
+            return
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
+            _authState.value = AuthState.Error(
+                "Введите корректную почту",
+                ErrorField.EMAIL
+            )
+            return
+        }
+
+        if (password.isBlank()) {
+            _authState.value = AuthState.Error(
+                "Введите пароль",
+                ErrorField.PASSWORD
+            )
+            return
+        }
+
+        _authState.value = AuthState.Loading
+
+        auth.signInWithEmailAndPassword(
+            trimmedEmail,
+            password
+        ).addOnCompleteListener { task ->
+
+            if (task.isSuccessful) {
+                _authState.value = AuthState.Success
+                return@addOnCompleteListener
+            }
+
+            val error = when (task.exception) {
+
+                is FirebaseAuthInvalidUserException ->
+                    AuthState.Error(
+                        "Пользователь не найден",
+                        ErrorField.EMAIL
+                    )
+
+                is FirebaseAuthInvalidCredentialsException ->
+                    AuthState.Error(
+                        "Неверный пароль",
+                        ErrorField.PASSWORD
+                    )
+
+                is FirebaseNetworkException ->
+                    AuthState.Error(
+                        "Нет подключения к интернету"
+                    )
+
+                else ->
+                    AuthState.Error(
+                        task.exception?.localizedMessage
+                            ?: "Ошибка входа"
+                    )
+            }
+
+            _authState.value = error
+        }
+    }
+
     fun signInWithGoogle(idToken: String) {
         _authState.value = AuthState.Loading
         val credential = GoogleAuthProvider.getCredential(idToken, null)
-
         auth.signInWithCredential(credential)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     _authState.value = AuthState.Success
                 } else {
-                    val (message, _) = getRussianErrorDetails(task.exception)
-                    _authState.value = AuthState.Error(message, ErrorField.NONE)
+                    _authState.value = AuthState.Error(
+                        task.exception?.localizedMessage ?: "Ошибка входа через Google"
+                    )
                 }
             }
     }
 
-    // Авторизация через Apple (заглушка)
     fun signInWithApple(activity: Activity) {
         _authState.value = AuthState.Loading
         val provider = OAuthProvider.newBuilder("apple.com")
-        provider.scopes = listOf("email", "name")
-
         auth.startActivityForSignInWithProvider(activity, provider.build())
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     _authState.value = AuthState.Success
                 } else {
-                    val (message, _) = getRussianErrorDetails(task.exception)
-                    _authState.value = AuthState.Error(message, ErrorField.NONE)
+                    _authState.value = AuthState.Error(
+                        task.exception?.localizedMessage ?: "Ошибка входа через Apple"
+                    )
                 }
             }
     }
 
-    private fun getRussianErrorDetails(exception: Exception?): Pair<String, ErrorField> {
-        return when (exception) {
-            is FirebaseAuthWeakPasswordException -> Pair(
-                "Пароль слишком простой (минимум 6 символов).",
-                ErrorField.PASSWORD,
-            )
-
-            is FirebaseAuthInvalidCredentialsException -> Pair(
-                "Неверный формат почты.",
-                ErrorField.EMAIL,
-            )
-
-            is FirebaseAuthUserCollisionException -> Pair(
-                "Пользователь с такой почтой уже существует.",
-                ErrorField.EMAIL,
-            )
-
-            is FirebaseNetworkException -> Pair(
-                "Ошибка сети. Проверьте подключение.",
-                ErrorField.NONE,
-            )
-
-            else -> Pair("Произошла неизвестная ошибка. Попробуйте позже.", ErrorField.NONE)
-        }
+    fun resetError() {
+        _authState.value = AuthState.Idle
     }
 
-    fun resetError() {
-        if (_authState.value is AuthState.Error) {
-            _authState.value = AuthState.Idle
-        }
+    fun resetState() {
+        _authState.value = AuthState.Idle
     }
 }
