@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import ru.example.caloriecounterapp.ui.screens.auth.LoginScreen
 import ru.example.caloriecounterapp.ui.screens.auth.RegistrationScreen
 import ru.example.caloriecounterapp.ui.screens.diary.DiaryScreen
 import ru.example.caloriecounterapp.ui.screens.product_detail.ProductDetailScreen
@@ -25,10 +26,26 @@ fun AppNavigation() {
         // 1. Регистрация
         composable("registration") {
             RegistrationScreen(
-                onNavigateToLogin = { /* TODO: Добавить переход на логин */ },
+                onNavigateToLogin = {
+                    navController.navigate("login")
+                },
                 onSuccess = {
                     navController.navigate("diary") {
                         popUpTo("registration") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // 1.1. Вход в аккаунт (Логин)
+        composable("login") {
+            LoginScreen(
+                onNavigateToRegistration = {
+                    navController.popBackStack()
+                },
+                onSuccess = {
+                    navController.navigate("diary") {
+                        popUpTo("login") { inclusive = true }
                     }
                 }
             )
@@ -47,7 +64,6 @@ fun AppNavigation() {
         composable("scanner") {
             ScannerScreen(
                 onCodeScanned = { barcode ->
-                    // Передаем реальный считанный код в следующий экран
                     navController.navigate("product_details/$barcode")
                 },
                 onBack = {
@@ -64,7 +80,6 @@ fun AppNavigation() {
             val barcode = backStackEntry.arguments?.getString("barcode") ?: ""
             val viewModel: ProductDetailViewModel = viewModel()
 
-            // Запускаем поиск продукта при открытии экрана
             LaunchedEffect(barcode) {
                 viewModel.fetchProduct(barcode)
             }
@@ -72,7 +87,6 @@ fun AppNavigation() {
             ProductDetailScreen(
                 viewModel = viewModel,
                 onSave = {
-                    // Возвращаемся в дневник и очищаем стек до него
                     navController.popBackStack("diary", inclusive = false)
                 }
             )

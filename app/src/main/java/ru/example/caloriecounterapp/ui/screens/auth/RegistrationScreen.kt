@@ -167,34 +167,76 @@ fun RegistrationScreen(
                 )
 
                 if (isWideScreen) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            NameField(name, onValueChange = { name = it; viewModel.resetError() }, authState)
+                            NameField(
+                                name,
+                                onValueChange = { name = it; viewModel.resetError() },
+                                authState
+                            )
                             Spacer(Modifier.height(16.dp))
-                            EmailField(email, onValueChange = { email = it; viewModel.resetError() }, authState)
+                            EmailField(
+                                email,
+                                onValueChange = { email = it; viewModel.resetError() },
+                                authState
+                            )
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            PasswordField(password, onValueChange = { password = it; viewModel.resetError() }, authState)
+                            PasswordField(
+                                password,
+                                onValueChange = { password = it; viewModel.resetError() },
+                                authState
+                            )
                             Spacer(Modifier.height(16.dp))
-                            ConfirmPasswordField(confirmPassword, onValueChange = { confirmPassword = it; viewModel.resetError() }, authState)
+                            ConfirmPasswordField(
+                                confirmPassword,
+                                onValueChange = { confirmPassword = it; viewModel.resetError() },
+                                authState
+                            )
                         }
                     }
                 } else {
-                    NameField(name, onValueChange = { name = it; viewModel.resetError() }, authState)
+                    NameField(
+                        name,
+                        onValueChange = { name = it; viewModel.resetError() },
+                        authState
+                    )
                     Spacer(Modifier.height(16.dp))
-                    EmailField(email, onValueChange = { email = it; viewModel.resetError() }, authState)
+                    EmailField(
+                        email,
+                        onValueChange = { email = it; viewModel.resetError() },
+                        authState
+                    )
                     Spacer(Modifier.height(16.dp))
-                    PasswordField(password, onValueChange = { password = it; viewModel.resetError() }, authState)
+                    PasswordField(
+                        password,
+                        onValueChange = { password = it; viewModel.resetError() },
+                        authState
+                    )
                     Spacer(Modifier.height(16.dp))
-                    ConfirmPasswordField(confirmPassword, onValueChange = { confirmPassword = it; viewModel.resetError() }, authState)
+                    ConfirmPasswordField(
+                        confirmPassword,
+                        onValueChange = { confirmPassword = it; viewModel.resetError() },
+                        authState
+                    )
                 }
 
                 Spacer(Modifier.height(16.dp))
 
                 if (isWideScreen) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            BirthDateField(birthDate, onValueChange = { birthDate = it; viewModel.resetError() }, authState)
+                            BirthDateField(
+                                birthDate,
+                                onValueChange = { birthDate = it; viewModel.resetError() },
+                                authState
+                            )
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             GenderField(
@@ -207,7 +249,11 @@ fun RegistrationScreen(
                         }
                     }
                 } else {
-                    BirthDateField(birthDate, onValueChange = { birthDate = it; viewModel.resetError() }, authState)
+                    BirthDateField(
+                        birthDate,
+                        onValueChange = { birthDate = it; viewModel.resetError() },
+                        authState
+                    )
                     Spacer(Modifier.height(16.dp))
                     GenderField(
                         gender = gender,
@@ -222,7 +268,9 @@ fun RegistrationScreen(
 
                 TermsCheckbox(
                     isAccepted = isTermsAccepted,
-                    onCheckedChange = { isAccepted -> isTermsAccepted = isAccepted; viewModel.resetError() },
+                    onCheckedChange = { isAccepted ->
+                        isTermsAccepted = isAccepted; viewModel.resetError()
+                    },
                     authState = authState
                 )
 
@@ -233,7 +281,14 @@ fun RegistrationScreen(
                 RegistrationButton(
                     isLoading = authState is AuthState.Loading,
                     onClick = {
-                        viewModel.register(name, email, password, confirmPassword, birthDate, isTermsAccepted)
+                        viewModel.register(
+                            name,
+                            email,
+                            password,
+                            confirmPassword,
+                            birthDate,
+                            isTermsAccepted
+                        )
                     },
                     modifier = Modifier.fillMaxWidth(if (isWideScreen) 0.7f else 1f)
                 )
@@ -261,7 +316,14 @@ private fun NameField(value: String, onValueChange: (String) -> Unit, authState:
         value = value,
         onValueChange = onValueChange,
         labelText = "Имя",
-        icon = { Icon(painterResource(R.drawable.ic_user), null, tint = AccentLime, modifier = Modifier.size(19.dp)) },
+        icon = {
+            Icon(
+                painterResource(R.drawable.ic_user),
+                null,
+                tint = AccentLime,
+                modifier = Modifier.size(19.dp)
+            )
+        },
         isError = authState is AuthState.Error && authState.field == ErrorField.NAME,
         errorMessage = if (authState is AuthState.Error && authState.field == ErrorField.NAME) authState.message else null
     )
@@ -273,7 +335,14 @@ private fun EmailField(value: String, onValueChange: (String) -> Unit, authState
         value = value,
         onValueChange = onValueChange,
         labelText = "Почта",
-        icon = { Icon(painterResource(R.drawable.ic_email), null, tint = AccentLime, modifier = Modifier.size(15.dp, 12.dp)) },
+        icon = {
+            Icon(
+                painterResource(R.drawable.ic_email),
+                null,
+                tint = AccentLime,
+                modifier = Modifier.size(15.dp, 12.dp)
+            )
+        },
         keyboardType = KeyboardType.Email,
         isError = authState is AuthState.Error && authState.field == ErrorField.EMAIL,
         errorMessage = if (authState is AuthState.Error && authState.field == ErrorField.EMAIL) authState.message else null
@@ -286,7 +355,14 @@ private fun PasswordField(value: String, onValueChange: (String) -> Unit, authSt
         value = value,
         onValueChange = onValueChange,
         labelText = "Пароль",
-        icon = { Icon(painterResource(R.drawable.ic_lock), null, tint = AccentLime, modifier = Modifier.size(19.dp)) },
+        icon = {
+            Icon(
+                painterResource(R.drawable.ic_lock),
+                null,
+                tint = AccentLime,
+                modifier = Modifier.size(19.dp)
+            )
+        },
         isPassword = true,
         isError = authState is AuthState.Error && authState.field == ErrorField.PASSWORD,
         errorMessage = if (authState is AuthState.Error && authState.field == ErrorField.PASSWORD) authState.message else null
@@ -294,12 +370,23 @@ private fun PasswordField(value: String, onValueChange: (String) -> Unit, authSt
 }
 
 @Composable
-private fun ConfirmPasswordField(value: String, onValueChange: (String) -> Unit, authState: AuthState) {
+private fun ConfirmPasswordField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    authState: AuthState
+) {
     CustomTextField(
         value = value,
         onValueChange = onValueChange,
         labelText = "Повторите пароль",
-        icon = { Icon(painterResource(R.drawable.ic_lock), null, tint = AccentLime, modifier = Modifier.size(19.dp)) },
+        icon = {
+            Icon(
+                painterResource(R.drawable.ic_lock),
+                null,
+                tint = AccentLime,
+                modifier = Modifier.size(19.dp)
+            )
+        },
         isPassword = true,
         isError = authState is AuthState.Error && authState.field == ErrorField.CONFIRM_PASSWORD,
         errorMessage = if (authState is AuthState.Error && authState.field == ErrorField.CONFIRM_PASSWORD) authState.message else null
@@ -315,7 +402,14 @@ private fun BirthDateField(value: String, onValueChange: (String) -> Unit, authS
             if (digitsOnly.length <= 8) onValueChange(digitsOnly)
         },
         labelText = "Дата рождения",
-        icon = { Icon(painterResource(R.drawable.ic_calendar), null, tint = AccentLime, modifier = Modifier.size(19.dp)) },
+        icon = {
+            Icon(
+                painterResource(R.drawable.ic_calendar),
+                null,
+                tint = AccentLime,
+                modifier = Modifier.size(19.dp)
+            )
+        },
         keyboardType = KeyboardType.Number,
         visualTransformation = DateVisualTransformation(),
         isError = authState is AuthState.Error && authState.field == ErrorField.BIRTH_DATE,
@@ -343,7 +437,14 @@ private fun GenderField(
             labelText = "Пол",
             readOnly = true,
             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-            icon = { Icon(painterResource(R.drawable.ic_people), null, tint = AccentLime, modifier = Modifier.size(20.dp)) },
+            icon = {
+                Icon(
+                    painterResource(R.drawable.ic_people),
+                    null,
+                    tint = AccentLime,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) }
         )
 
@@ -363,7 +464,11 @@ private fun GenderField(
 }
 
 @Composable
-private fun TermsCheckbox(isAccepted: Boolean, onCheckedChange: (Boolean) -> Unit, authState: AuthState) {
+private fun TermsCheckbox(
+    isAccepted: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    authState: AuthState
+) {
     val isTermsError = authState is AuthState.Error && authState.field == ErrorField.TERMS
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -407,7 +512,11 @@ private fun GlobalErrorText(authState: AuthState) {
 }
 
 @Composable
-private fun RegistrationButton(isLoading: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun RegistrationButton(
+    isLoading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     if (isLoading) {
         CircularProgressIndicator(color = AccentLime)
     } else {
@@ -415,7 +524,10 @@ private fun RegistrationButton(isLoading: Boolean, onClick: () -> Unit, modifier
             onClick = onClick,
             modifier = modifier.height(56.dp),
             shape = RoundedCornerShape(28.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AccentLime, contentColor = Color.Black)
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AccentLime,
+                contentColor = Color.Black
+            )
         ) {
             Text(text = "Зарегистрироваться", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
@@ -440,7 +552,8 @@ private fun SocialSection(
             HorizontalDivider(modifier = Modifier.weight(1f), color = Color.DarkGray)
         }
 
-        val buttonModifier = if (isWideScreen) Modifier.fillMaxWidth(0.7f) else Modifier.fillMaxWidth()
+        val buttonModifier =
+            if (isWideScreen) Modifier.fillMaxWidth(0.7f) else Modifier.fillMaxWidth()
 
         SocialButton(
             text = "Продолжить с Google",
@@ -456,11 +569,15 @@ private fun SocialSection(
                             .setServerClientId(context.getString(R.string.default_web_client_id))
                             .setAutoSelectEnabled(true)
                             .build()
-                        val request = GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
-                        val result = credentialManager.getCredential(request = request, context = context)
+                        val request =
+                            GetCredentialRequest.Builder().addCredentialOption(googleIdOption)
+                                .build()
+                        val result =
+                            credentialManager.getCredential(request = request, context = context)
                         val credential = result.credential
                         if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                            val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                            val googleIdTokenCredential =
+                                GoogleIdTokenCredential.createFrom(credential.data)
                             viewModel.signInWithGoogle(googleIdTokenCredential.idToken)
                         }
                     } catch (e: Exception) {
@@ -482,13 +599,26 @@ private fun SocialSection(
 
 @Composable
 private fun LoginNavigationRow(onNavigateToLogin: () -> Unit) {
-    Row {
-        Text("Уже есть аккаунт? ", color = TextSecondary)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 24.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(
-            "Войти",
+            text = "Уже есть аккаунт? ",
+            color = TextSecondary,
+            fontSize = 14.sp
+        )
+        Text(
+            text = "Войти",
             color = AccentLime,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.clickable { onNavigateToLogin() }
+            modifier = Modifier
+                .clickable { onNavigateToLogin() }
+                .padding(4.dp)
         )
     }
 }
